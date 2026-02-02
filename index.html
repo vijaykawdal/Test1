@@ -14,6 +14,7 @@
             justify-content: center;
             align-items: center;
             background: linear-gradient(135deg, #ff9a9e, #fad0c4);
+            overflow: hidden;
         }
 
         .card {
@@ -25,17 +26,20 @@
             text-align: center;
             box-shadow: 0 15px 40px rgba(0,0,0,0.25);
             position: relative;
+            border: 2px solid rgba(255,255,255,0.4);
         }
 
         h2 {
             color: #fff;
             margin-bottom: 30px;
             font-size: 22px;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
 
         button {
             width: 140px;
             padding: 14px;
+            margin: 10px;
             border: none;
             border-radius: 30px;
             font-size: 18px;
@@ -47,26 +51,27 @@
             color: white;
         }
 
-        /* REAL BUTTON */
         .no {
             background: linear-gradient(135deg, #6c757d, #adb5bd);
             color: white;
             position: absolute;
-            z-index: 2;
-        }
-
-        /* INVISIBLE HIT ZONE */
-        .no-zone {
-            position: absolute;
-            width: 220px;   /* BIGGER = MORE ESCAPE */
-            height: 140px;
-            z-index: 1;
+            left: 120px;
+            top: 220px;
+            transition: left 0.25s ease, top 0.25s ease;
         }
 
         #status {
             margin-top: 30px;
+            font-size: 16px;
             font-weight: bold;
             color: #fff;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            animation: pop 0.3s ease;
+        }
+
+        @keyframes pop {
+            from { transform: scale(0.8); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
         }
     </style>
 </head>
@@ -77,67 +82,96 @@
     <h2 id="question">Do you like me a little bit? 💕</h2>
 
     <button class="yes" onclick="sendAnswer('Yes')">Yes ❤️</button>
-
-    <!-- INVISIBLE AREA -->
-    <div class="no-zone" id="noZone"></div>
-
-    <!-- REAL BUTTON -->
     <button class="no" id="noBtn">No 💔</button>
 
     <p id="status"></p>
 </div>
 
 <script>
-/* ---------- SUBMIT YES ---------- */
+/* ---------- SEND YES + REDIRECT ---------- */
 function sendAnswer(answer) {
     const questionText =
         document.getElementById("question").innerText;
 
-    fetch("PASTE_SCRIPT_URL_HERE", {
+    fetch("https://script.google.com/macros/s/AKfycbxzzdNfjjtPYJxxVbAQYPE6kVgzROQokyRjMEw9vz_AUEM9DSpMRlajFKIs3o-FE5TC/exec", {
         method: "POST",
         mode: "no-cors",
         body: JSON.stringify({
             response: answer,
             question: questionText
         }),
-        headers: {
-            "Content-Type": "application/json"
-        }
+        headers: { "Content-Type": "application/json" }
     });
 
-    // ⏳ Small delay so data is sent before redirect
     setTimeout(() => {
         window.location.href = "success.html";
     }, 400);
 }
 
-/* ---------- FORCE-FIELD ESCAPE SYSTEM ---------- */
-const card = document.getElementById("card");
+/* ---------- ESCAPE LOGIC (DESKTOP + MOBILE) ---------- */
 const noBtn = document.getElementById("noBtn");
-const noZone = document.getElementById("noZone");
-
-/* Initial position */
-moveNoButton();
+const card = document.getElementById("card");
 
 function moveNoButton() {
     const cardRect = card.getBoundingClientRect();
+    const btnRect = noBtn.getBoundingClientRect();
 
-    const maxX = cardRect.width - 180;
-    const maxY = cardRect.height - 160;
+    const maxX = cardRect.width - btnRect.width - 10;
+    const maxY = cardRect.height - btnRect.height - 10;
 
-    const x = Math.random() * maxX;
-    const y = Math.random() * maxY;
-
-    noBtn.style.left = x + "px";
-    noBtn.style.top = y + "px";
-
-    /* Center invisible zone around button */
-    noZone.style.left = (x - 40) + "px";
-    noZone.style.top = (y - 30) + "px";
+    noBtn.style.left = Math.random() * maxX + "px";
+    noBtn.style.top = Math.random() * maxY + "px";
 }
 
-/* Escape when mouse enters BIG zone */
-noZone.addEventListener("mouseenter", moveNoButton);
+function handlePointer(x, y) {
+    const btnRect = noBtn.getBoundingClientRect();
+    const cx = btnRect.left + btnRect.width / 2;
+    const cy = btnRect.top + btnRect.height / 2;
+
+    const dx = x - cx;
+    const dy = y - cy;
+    const distance = Math.sqrt(dx*dx + dy*dy);
+
+    const escapeRadius = 140; // increase = harder
+
+    if (distance < escapeRadius) {
+        moveNoButton();
+    }
+}
+
+/* Desktop */
+card.addEventListener("mousemove", e => {
+    handlePointer(e.clientX, e.clientY);
+});
+
+/* Mobile */
+card.addEventListener("touchstart", e => {
+    const t = e.touches[0];
+    handlePointer(t.clientX, t.clientY);
+});
+
+card.addEventListener("touchmove", e => {
+    const t = e.touches[0];
+    handlePointer(t.clientX, t.clientY);
+});
+
+/* ---------- TRY AGAIN MESSAGE (MOBILE FRIENDLY) ---------- */
+noBtn.addEventListener("click", e => {
+    e.preventDefault();
+
+    const messages = [
+        "Try again 😜",
+        "Oops! Not that one 😏",
+        "Haha no escape 😈",
+        "Almost 😄 Try again",
+        "Nice try 💕"
+    ];
+
+    document.getElementById("status").innerText =
+        messages[Math.floor(Math.random() * messages.length)];
+
+    moveNoButton();
+});
 </script>
 
 </body>
